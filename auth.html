@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ 'Create account' if mode == 'signup' else 'Sign in' }} | PhantomGuard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="auth-shell">
+    <main class="auth-layout">
+        <section class="auth-intro"><a class="brand auth-brand" href="/"><span class="brand-mark">🛡</span><span>phantom<span class="brand-accent">guard</span></span></a><div class="intro-copy"><span class="eyebrow">SECURITY OPERATIONS</span><h1>Clarity when your perimeter is under pressure.</h1><p>A focused workspace for seeing threats early, responding quickly, and keeping your team in control.</p></div><div class="intro-foot"><span>PG-013</span><span>Protected workspace</span></div></section>
+        <section class="auth-panel"><div class="auth-form-wrap"><span class="eyebrow">{{ 'NEW WORKSPACE' if mode == 'signup' else 'WELCOME BACK' }}</span><h2>{{ 'Create your account' if mode == 'signup' else 'Sign in to PhantomGuard' }}</h2><p class="auth-subtitle">{{ 'Set up your personal command center in under a minute.' if mode == 'signup' else 'Continue to your security operations overview.' }}</p>
+            {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="form-alert">{{ message }}</div>{% endfor %}{% endwith %}
+            <form method="post">
+                {% if mode == 'signup' %}<label>Full name<input name="name" type="text" placeholder="Alex Morgan" required></label>{% endif %}
+                <label>Work email<input name="email" type="email" placeholder="you@company.com" required></label>
+                <label>Password<input name="password" type="password" placeholder="Minimum 6 characters" minlength="6" required></label>
+                <button class="button button-primary auth-submit" type="submit">{{ 'Create account' if mode == 'signup' else 'Sign in' }} <span>→</span></button>
+            </form>
+            <p class="auth-switch">{{ 'Already have an account?' if mode == 'signup' else "Don't have an account?" }} <a href="{{ '/login' if mode == 'signup' else '/signup' }}">{{ 'Sign in' if mode == 'signup' else 'Create one' }}</a></p>
+        </div></section>
+    </main>
+</body>
+</html>
