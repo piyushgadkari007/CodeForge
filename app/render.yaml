@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: phantomguard
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT
+    autoDeploy: true
+    envVars:
+      - key: PHANTOMGUARD_SECRET
+        generateValue: true
+      - key: GOOGLE_MAPS_API_KEY
+        value: ""

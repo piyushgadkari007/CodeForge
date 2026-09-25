@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>Drone view | PhantomGuard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="drone-shell">
+    <video id="cameraFeed" autoplay muted playsinline></video>
+    <div class="drone-vignette"></div><div class="drone-grid"></div>
+    <header class="drone-topbar"><a class="drone-brand" href="/"><span class="drone-mark">🛡</span> PHANTOMGUARD</a><span class="drone-mode"><i></i> FLIGHT MODE / PATROL</span><a class="drone-exit" href="/">Exit view <span>↗</span></a></header>
+    <main class="drone-stage">
+        <div class="drone-status"><span class="eyebrow">UNIT PG-013</span><strong id="sysStatus">NOMINAL</strong><small>Live telemetry</small></div>
+        <div class="reticle"><span></span></div>
+        <div class="drone-alert" id="dangerOverlay"><strong id="dangerTitle">THREAT LOCATED</strong><small>Perimeter response active</small></div>
+        <section class="telemetry-card"><div class="eyebrow">POSITION</div><strong id="gpsData">21.1458 N&nbsp;&nbsp; 79.0882 E</strong><small>GPS LOCK · 14 SATELLITES</small></section>
+        <section class="telemetry-card flight-card"><div><span class="eyebrow">FLIGHT</span><strong>452 <small>m ALT</small></strong><strong>34 <small>kt SPD</small></strong></div><div><span class="eyebrow">POWER</span><strong>84 <small>% BAT</small></strong><strong>STR <small>SIGNAL</small></strong></div></section>
+    </main>
+    <footer class="drone-controls"><span class="camera-note" id="cameraNote">Camera access is ready</span><button class="drone-button" id="camSwitchBtn" type="button">Switch camera <span>↔</span></button><button class="drone-button drone-button-solid" id="dashboardBtn" type="button">Dashboard <span>↗</span></button></footer>
+    <script>
+        let currentStream;
+        let useFrontCamera = false;
+        const videoElement = document.getElementById('cameraFeed');
+        async function initCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { document.getElementById('cameraNote').textContent = 'Camera unavailable · telemetry only'; return; }
+            if (currentStream) currentStream.getTracks().forEach(track => track.stop());
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: useFrontCamera ? 'user' : 'environment' } });
+                videoElement.srcObject = currentStream;
+                document.getElementById('cameraNote').textContent = useFrontCamera ? 'Front camera active' : 'Rear camera active';
+            } catch (error) { document.getElementById('cameraNote').textContent = 'Camera permission needed · telemetry only'; }
+        }
+        document.getElementById('camSwitchBtn').addEventListener('click', () => { useFrontCamera = !useFrontCamera; initCamera(); });
+        document.getElementById('dashboardBtn').addEventListener('click', () => { window.location.href = '/'; });
+        initCamera();
+        async function fetchSystemStatus() {
+            try {
+                const data = await (await fetch('/status')).json();
+                const alert = data.phone === 'DANGER' || data.status.includes('ATTACK');
+                const defense = data.phone === 'DEFENSE';
+                document.getElementById('sysStatus').textContent = defense ? 'DEFENSE ACTIVE' : alert ? 'THREAT ALERT' : 'NOMINAL';
+                document.getElementById('sysStatus').className = alert ? 'drone-danger-text' : '';
+                document.getElementById('dangerOverlay').className = alert ? 'drone-alert visible' : 'drone-alert';
+                document.getElementById('dangerTitle').textContent = defense ? 'DEFENSE ACTIVE' : 'THREAT LOCATED';
+                document.querySelector('.reticle').className = alert ? 'reticle reticle-alert' : 'reticle';
+            } catch (error) { console.error('Drone status error:', error); }
+        }
+        fetchSystemStatus(); setInterval(fetchSystemStatus, 1500);
+    </script>
+</body>
+</html>
