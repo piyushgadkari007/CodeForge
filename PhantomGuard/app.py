@@ -17,20 +17,41 @@ app.config['SECRET_KEY'] = os.environ.get('PHANTOMGUARD_SECRET', 'phantomguard-d
 app.config['GOOGLE_MAPS_API_KEY'] = os.environ.get('GOOGLE_MAPS_API_KEY', '')
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production' or bool(os.environ.get('RENDER'))
+app.config['SESSION_COOKIE_SECURE'] = (
+    os.environ.get('FLASK_ENV') == 'production'
+    or bool(os.environ.get('RENDER'))
+    or bool(os.environ.get('VERCEL'))
+)
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
 project_root = Path(__file__).resolve().parent.parent
 instance_dir = project_root / 'instance'
 instance_dir.mkdir(exist_ok=True)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-    'DATABASE_URL',
-    f"sqlite:///{instance_dir / 'phantomguard.db'}"
-)
+
+
+def get_database_uri():
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        return database_url
+    if os.environ.get('VERCEL') == '1':
+        return 'sqlite:////tmp/phantomguard.db'
+    return f"sqlite:///{instance_dir / 'phantomguard.db'}"
+
+
+app.config['SQLALCHEMY_DATABASE_URI'] = get_database_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def get_upload_folder():
+    if os.environ.get('VERCEL') == '1':
+        upload_dir = Path('/tmp/phantomguard_uploads')
+    else:
+        upload_dir = project_root / 'uploads'
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    return str(upload_dir)
+
+
+UPLOAD_FOLDER = get_upload_folder()
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024 # 50MB max-limit
 
@@ -459,8 +480,8 @@ def analyze_media():
     return jsonify(result)
 
 # ===== RUN SERVER =====
+with app.app_context():
+    db.create_all()
+
 if __name__ == "__main__":
-    # Create database tables if they don't exist
-    with app.app_context():
-        db.create_all()
     app.run(debug=True, host="0.0.0.0")

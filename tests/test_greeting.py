@@ -46,3 +46,15 @@ def test_login_throttling_blocks_repeated_failures():
         assert response.status_code == 200
     response = client.post('/login', data={'email': 'wrong@example.com', 'password': 'badpass', 'csrf_token': token}, follow_redirects=True)
     assert b'Too many failed login attempts' in response.data
+
+
+def test_vercel_environment_uses_temp_db_and_secure_cookies(monkeypatch):
+    import importlib
+    import PhantomGuard.app as app_module
+
+    monkeypatch.setenv('VERCEL', '1')
+    monkeypatch.setenv('FLASK_ENV', 'production')
+    reloaded = importlib.reload(app_module)
+
+    assert reloaded.app.config.get('SESSION_COOKIE_SECURE') is True
+    assert '/tmp/' in reloaded.app.config.get('SQLALCHEMY_DATABASE_URI', '')
